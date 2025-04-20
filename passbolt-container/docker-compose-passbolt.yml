@@ -1,0 +1,73 @@
+version: '3.7'
+
+services:
+  db:
+    image: mariadb:10.5
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: passbolt
+      MYSQL_USER: passbolt
+      MYSQL_PASSWORD: passboltpassword
+    volumes:
+      - database_data:/var/lib/mysql
+    networks:
+      - passbolt_network
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  passbolt:
+    image: passbolt/passbolt:latest-ce
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Replace with your actual Raspberry Pi's IP address
+      APP_FULL_BASE_URL: https://192.168.0.102:443
+      DATASOURCES_DEFAULT_HOST: db
+      DATASOURCES_DEFAULT_USERNAME: passbolt
+      DATASOURCES_DEFAULT_PASSWORD: passboltpassword
+      DATASOURCES_DEFAULT_DATABASE: passbolt
+      
+      # Email settings
+      EMAIL_TRANSPORT_DEFAULT_HOST: ${EMAIL_HOST:-localhost}
+      EMAIL_TRANSPORT_DEFAULT_PORT: ${EMAIL_PORT:-25}
+      EMAIL_TRANSPORT_DEFAULT_FROM: ${EMAIL_FROM:-no-reply@passbolt.local}
+      EMAIL_TRANSPORT_DEFAULT_USERNAME: ${EMAIL_USERNAME:-}
+      EMAIL_TRANSPORT_DEFAULT_PASSWORD: ${EMAIL_PASSWORD:-}
+      EMAIL_TRANSPORT_DEFAULT_TLS: ${EMAIL_TLS:-false}
+      
+      # HTTPS Configuration
+      PASSBOLT_SSL_FORCE: "true"
+      PASSBOLT_SSL_KEY_PATH: "/etc/ssl/certs/passbolt/certificate.key"
+      PASSBOLT_SSL_CERT_PATH: "/etc/ssl/certs/passbolt/certificate.crt"
+      PASSBOLT_SSL_SELF_SIGNED: "true"
+    volumes:
+      - gpg_keys:/etc/passbolt/gpg
+      - jwt_keys:/etc/passbolt/jwt
+      - ./ssl:/etc/ssl/certs/passbolt
+    ports:
+      - "443:443"
+      - "80:80"  # Also expose HTTP port for initial redirects
+    networks:
+      - passbolt_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/healthcheck/status.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  passbolt_network:
+
+volumes:
+  database_data:
+  gpg_keys:
+  jwt_keys:

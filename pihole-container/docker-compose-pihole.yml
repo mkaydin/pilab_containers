@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    restart: unless-stopped
+    environment:
+      TZ: "Europe/Istanbul"
+      WEBPASSWORD: "change_me_muck"
+    volumes:
+      - pihole_etc:/etc/pihole/
+      - pihole_dnsmasq:/etc/dnsmasq.d/
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+    ports:
+      - "8080:80"        # Pi-hole Web UI
+      - "8053:53/tcp"    # DNS over TCP
+      - "8053:53/udp"    # DNS over UDP
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - pihole_net
+
+volumes:
+  pihole_etc:
+  pihole_dnsmasq:
+
+networks:
+  pihole_net:
