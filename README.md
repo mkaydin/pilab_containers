@@ -1,5 +1,3 @@
-I'll create a comprehensive GitHub README file for this Docker Container Installer script for Raspberry Pi OS, along with an SVG diagram showing the container system architecture.
-
 # Docker Container Installer for Raspberry Pi OS
 
 A powerful and user-friendly script to simplify Docker installation and container management on Raspberry Pi devices.
